@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: reelgrab
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: RATE_LIMIT_PER_MIN
+        value: "20"
