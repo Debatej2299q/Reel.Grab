@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b0b14" />
+  <title>ReelGrab — Instagram video downloader</title>
+  <meta name="description" content="Paste a public Instagram link and download the video in the quality you want." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+  </div>
+
+  <main class="wrap">
+    <header class="hero">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span>ReelGrab</span>
+      </div>
+      <h1>Save any public <span class="grad">Instagram</span> video.</h1>
+      <p class="sub">Paste a reel or post link, pick a quality, and download. Fast, free, no sign-up.</p>
+    </header>
+
+    <form id="form" class="card input-card" autocomplete="off">
+      <div class="field">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+        <input id="url" type="url" inputmode="url" placeholder="https://www.instagram.com/reel/..." required aria-label="Instagram link" />
+        <button type="button" id="paste" class="ghost" title="Paste from clipboard">Paste</button>
+      </div>
+      <button id="fetch" class="primary" type="submit">
+        <span class="label">Get video</span>
+        <span class="spinner" hidden></span>
+      </button>
+    </form>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <section id="result" class="card result" hidden>
+      <div id="items" class="items"></div>
+
+      <div class="panel">
+        <h2 id="title">Video</h2>
+        <p id="meta" class="meta"></p>
+
+        <div class="quality-label">Choose quality</div>
+        <div id="options" class="chips" role="radiogroup" aria-label="Quality"></div>
+
+        <button id="download" class="primary big" type="button">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span class="label">Download</span>
+          <span class="spinner" hidden></span>
+        </button>
+        <p id="status" class="status" hidden></p>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <p>Only download content you own or have permission to save. Respect creators and Instagram's terms.</p>
+      <p>Powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank" rel="noopener">yt-dlp</a></p>
+    </footer>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
