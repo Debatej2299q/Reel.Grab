@@ -3,6 +3,7 @@
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 import threading
 import time
@@ -17,7 +18,27 @@ BASE_DIR = Path(__file__).parent
 app = Flask(__name__, static_folder=str(BASE_DIR / "static"), static_url_path="/static")
 
 ALLOWED_HOSTS = {"instagram.com", "www.instagram.com", "m.instagram.com"}
-HAS_FFMPEG = shutil.which("ffmpeg") is not None
+
+
+def find_ffmpeg():
+    """Return a path to an ffmpeg binary, or None.
+
+    Instagram serves video and audio as separate streams. Without ffmpeg to join
+    them you get a silent video, so we look for a system ffmpeg first and fall
+    back to the one bundled with the `imageio-ffmpeg` package.
+    """
+    path = shutil.which("ffmpeg")
+    if path:
+        return path
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+
+
+FFMPEG = find_ffmpeg()
+HAS_FFMPEG = FFMPEG is not None
 COOKIE_FILE = os.environ.get("INSTAGRAM_COOKIES")  # optional path to a cookies.txt
 RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MIN", "20"))
 
@@ -53,9 +74,25 @@ def base_opts() -> dict:
         "socket_timeout": 20,
         "retries": 3,
     }
+    if FFMPEG:
+        opts["ffmpeg_location"] = FFMPEG
     if COOKIE_FILE and Path(COOKIE_FILE).is_file():
         opts["cookiefile"] = COOKIE_FILE
     return opts
+
+
+def file_has_audio(path: Path) -> bool:
+    """True if the file contains an audio stream (asks ffmpeg to describe the file)."""
+    if not FFMPEG:
+        return True  # can't check; the format selector already avoids video-only streams
+    try:
+        out = subprocess.run(
+            [FFMPEG, "-hide_banner", "-i", str(path)],
+            capture_output=True, text=True, timeout=30,
+        )
+        return "Audio:" in out.stderr
+    except Exception:
+        return True
 
 
 def friendly_error(exc: Exception) -> str:
@@ -67,6 +104,9 @@ def friendly_error(exc: Exception) -> str:
         return "That link isn't a downloadable Instagram post or reel."
     if "ffmpeg" in msg:
         return "ffmpeg is required for this option but isn't installed on the server."
+    if "no audio stream" in msg:
+        return ("This post's audio couldn't be attached. Instagram sometimes hides the sound "
+                "track from logged-out requests; try again or configure cookies (see README).")
     return "Couldn't fetch that video. Check the link and try again."
 
 
@@ -108,12 +148,15 @@ def quality_options(entries: list) -> list:
 
 
 def format_selector(quality: str) -> str:
-    if quality == "best":
-        return "bv*+ba/b" if HAS_FFMPEG else "b"
-    h = int(quality)
+    """Pick formats that always include sound.
+
+    With ffmpeg: best video + best audio, merged into one file.
+    Without ffmpeg: only formats that already have both streams (never video-only).
+    """
+    cap = "" if quality == "best" else f"[height<={int(quality)}]"
     if HAS_FFMPEG:
-        return f"bv*[height<={h}]+ba/b[height<={h}]/b"
-    return f"b[height<={h}]/b"
+        return f"bv*{cap}+ba/b{cap}" + ("/b" if cap else "")
+    return f"b{cap}[acodec!=none][vcodec!=none]/b[acodec!=none]"
 
 
 # ------------------------------------------------------------------ routes
@@ -146,6 +189,7 @@ def info():
     return jsonify(
         items=[summarize(e, i + 1) for i, e in enumerate(entries)],
         options=quality_options(entries),
+        ffmpeg=HAS_FFMPEG,
         source=url,
     )
 
@@ -192,6 +236,8 @@ def download():
         if not files:
             raise RuntimeError("No file was produced")
         path = max(files, key=lambda p: p.stat().st_size)
+        if quality != "mp3" and not file_has_audio(path):
+            raise RuntimeError("no audio stream in the downloaded file")
     except Exception as exc:
         shutil.rmtree(tmp, ignore_errors=True)
         return jsonify(error=friendly_error(exc)), 422
