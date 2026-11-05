@@ -1,11 +1,13 @@
 # ReelGrab
 
+A free tool by **Tej Tech**.
+
 A clean web app for downloading **public** Instagram videos (reels, posts, carousels) in the quality you choose. Built with Flask and [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 ## Features
 - Paste a link, preview the video, pick quality (Best / 1080p / 720p / 480p / MP3 audio)
 - Carousel posts: choose which video to download
-- Dark glassmorphism UI, mobile friendly
+- Simple, responsive interface with automatic light/dark mode
 - Rate limiting, Instagram-only URL validation, temp files cleaned after every download
 
 ## Run locally
@@ -18,7 +20,8 @@ python app.py
 ```
 Open http://localhost:5000.
 
-Install [ffmpeg](https://ffmpeg.org/download.html) to enable merged high-quality video and MP3 extraction (without it the app falls back to single-file formats and hides the MP3 option).
+### Why a video can come out without sound
+Instagram stores a video's picture and sound as two separate streams. ffmpeg joins them into one MP4. ReelGrab looks for a system ffmpeg first and otherwise uses the one bundled with the `imageio-ffmpeg` package (installed by `requirements.txt`), so merging works out of the box. As a safeguard, the server also checks every file for an audio track before sending it, and shows an error instead of handing you a silent video.
 
 ## Run with Docker
 ```bash
